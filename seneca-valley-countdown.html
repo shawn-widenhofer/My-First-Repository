@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oliva's Countdown to the Last Bell</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+
+  :root{
+    --ink:#080b15;
+    --panel:#0e1428;
+    --panel2:#121a34;
+    --border:#1e2a4d;
+    --blue:#1345c4;
+    --blue-bright:#4c85ff;
+    --amber:#ffb33e;
+    --amber-dim:#8a6321;
+    --white:#f4f6fc;
+    --slate:#8a92b3;
+    --dim:#3c4568;
+    --off:#2a3355;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    padding:0;
+    background:
+      radial-gradient(ellipse 120% 80% at 50% -10%, #17204a 0%, var(--ink) 55%),
+      var(--ink);
+    color:var(--white);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* subtle scanline / arena-lighting overlay */
+  .scanlines{
+    pointer-events:none;
+    position:fixed;
+    inset:0;
+    z-index:50;
+    background:repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.018) 0px,
+      rgba(255,255,255,0.018) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode:overlay;
+  }
+
+  .wrap{
+    max-width:1080px;
+    margin:0 auto;
+    padding:48px 24px 80px;
+    position:relative;
+    z-index:1;
+  }
+
+  /* ---------- HEADER ---------- */
+  header{
+    text-align:center;
+    margin-bottom:44px;
+    position:relative;
+  }
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--amber);
+    background:rgba(255,179,62,0.08);
+    border:1px solid var(--amber-dim);
+    padding:6px 14px;
+    border-radius:999px;
+    margin-bottom:18px;
+  }
+  .badge::before{
+    content:"";
+    width:6px;height:6px;
+    border-radius:50%;
+    background:var(--amber);
+    box-shadow:0 0 8px var(--amber);
+    animation:pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:1;}
+    50%{opacity:.35;}
+  }
+
+  h1{
+    font-family:'Teko',sans-serif;
+    font-weight:600;
+    font-size:clamp(38px,7vw,64px);
+    letter-spacing:.01em;
+    line-height:1;
+    margin:0 0 10px;
+    text-transform:uppercase;
+    background:linear-gradient(180deg,#ffffff 0%,#c7d2f5 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  h1 span{ color:var(--blue-bright); -webkit-text-fill-color:var(--blue-bright); }
+
+  .subtitle{
+    color:var(--slate);
+    font-size:14px;
+    font-family:'JetBrains Mono',monospace;
+    letter-spacing:.02em;
+  }
+  .subtitle b{ color:var(--white); font-weight:600; }
+
+  .asof{
+    margin-top:6px;
+    color:var(--dim);
+    font-size:11px;
+    font-family:'JetBrains Mono',monospace;
+    letter-spacing:.05em;
+  }
+
+  /* ---------- GRAND SCOREBOARD ---------- */
+  .grand{
+    text-align:center;
+    background:linear-gradient(180deg,var(--panel2) 0%, var(--panel) 100%);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:38px 20px 34px;
+    margin-bottom:28px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:0 30px 60px -30px rgba(19,69,196,.35), inset 0 1px 0 rgba(255,255,255,.03);
+  }
+  .grand::before{
+    content:"";
+    position:absolute;
+    top:-40%;
+    left:50%;
+    width:140%;
+    height:140%;
+    transform:translateX(-50%);
+    background:radial-gradient(ellipse at center, rgba(76,133,255,.14) 0%, transparent 60%);
+    pointer-events:none;
+  }
+  .grand-eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--slate);
+    margin-bottom:6px;
+  }
+  .grand-number{
+    font-family:'Teko',sans-serif;
+    font-weight:700;
+    font-size:clamp(90px,22vw,190px);
+    line-height:.9;
+    color:var(--white);
+    text-shadow:0 0 40px rgba(76,133,255,.55), 0 0 4px rgba(255,255,255,.4);
+    position:relative;
+  }
+  .grand-label{
+    font-family:'Teko',sans-serif;
+    font-size:clamp(20px,3.4vw,30px);
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:var(--blue-bright);
+    margin-top:-6px;
+  }
+  .grand-target{
+    margin-top:14px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:var(--dim);
+    letter-spacing:.05em;
+  }
+
+  /* ---------- D H M S SPLIT CLOCK ---------- */
+  .split-clock{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+    margin-bottom:28px;
+  }
+  .flip{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:20px 8px 14px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .flip::after{
+    content:"";
+    position:absolute;
+    left:0;right:0;top:50%;
+    height:1px;
+    background:rgba(0,0,0,.4);
+  }
+  .flip-num{
+    font-family:'Teko',sans-serif;
+    font-weight:600;
+    font-size:clamp(44px,9vw,76px);
+    line-height:1;
+    color:var(--amber);
+    text-shadow:0 0 22px rgba(255,179,62,.45);
+    font-variant-numeric:tabular-nums;
+  }
+  .flip-label{
+    margin-top:4px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    color:var(--slate);
+  }
+
+  /* ---------- SECONDARY STAT CHIPS ---------- */
+  .stats-row{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+    margin-bottom:44px;
+  }
+  .chip{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:16px 14px;
+    text-align:center;
+  }
+  .chip-num{
+    font-family:'Teko',sans-serif;
+    font-weight:600;
+    font-size:32px;
+    color:var(--white);
+  }
+  .chip-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--slate);
+    margin-top:2px;
+  }
+
+  /* ---------- SECTION TITLE ---------- */
+  .section-title{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin:0 0 16px;
+    color:var(--slate);
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+  }
+  .section-title::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:linear-gradient(to right,var(--border),transparent);
+  }
+
+  /* ---------- WEEKDAY JERSEY GRID ---------- */
+  .weekday-grid{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:12px;
+    margin-bottom:14px;
+  }
+  .jersey{
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:18px 8px 14px;
+    text-align:center;
+    position:relative;
+    transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  }
+  .jersey:hover{
+    transform:translateY(-3px);
+    border-color:var(--blue-bright);
+    box-shadow:0 16px 30px -14px rgba(76,133,255,.5);
+  }
+  .jersey-day{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:.15em;
+    color:var(--blue-bright);
+    text-transform:uppercase;
+  }
+  .jersey-num{
+    font-family:'Teko',sans-serif;
+    font-weight:700;
+    font-size:clamp(38px,6vw,54px);
+    line-height:1.05;
+    color:var(--white);
+  }
+  .jersey-full{
+    font-size:10px;
+    color:var(--dim);
+    letter-spacing:.05em;
+  }
+
+  .weekend-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:12px;
+    margin-bottom:36px;
+  }
+  .jersey.off{
+    background:var(--panel);
+    opacity:.6;
+  }
+  .jersey.off .jersey-day{ color:var(--slate); }
+  .jersey.off .jersey-num{ color:var(--off); }
+  .jersey.off:hover{
+    transform:none;
+    border-color:var(--border);
+    box-shadow:none;
+  }
+
+  footer{
+    text-align:center;
+    color:var(--dim);
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    line-height:1.7;
+    letter-spacing:.02em;
+    padding-top:8px;
+    border-top:1px solid var(--border);
+  }
+  footer code{
+    color:var(--slate);
+    background:rgba(255,255,255,.04);
+    padding:1px 6px;
+    border-radius:4px;
+  }
+
+  .done{
+    text-align:center;
+    font-family:'Teko',sans-serif;
+    font-size:clamp(28px,5vw,44px);
+    color:var(--amber);
+    padding:20px;
+  }
+
+  /* ---------- SETTINGS ---------- */
+  .gear-btn{
+    position:absolute;
+    top:44px;
+    right:24px;
+    width:38px;
+    height:38px;
+    border-radius:10px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    color:var(--slate);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:color .2s ease, border-color .2s ease, transform .2s ease;
+  }
+  .gear-btn:hover{
+    color:var(--blue-bright);
+    border-color:var(--blue-bright);
+    transform:rotate(35deg);
+  }
+
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(4,6,14,.72);
+    backdrop-filter:blur(3px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+    padding:20px;
+  }
+  .modal-overlay.open{ display:flex; }
+
+  .modal{
+    width:100%;
+    max-width:420px;
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:26px 24px 22px;
+    box-shadow:0 40px 80px -20px rgba(0,0,0,.6);
+  }
+  .modal h3{
+    font-family:'Teko',sans-serif;
+    font-weight:600;
+    font-size:26px;
+    letter-spacing:.02em;
+    text-transform:uppercase;
+    margin:0 0 4px;
+    color:var(--white);
+  }
+  .modal p.hint{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--dim);
+    margin:0 0 20px;
+  }
+  .field{
+    margin-bottom:16px;
+  }
+  .field label{
+    display:block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--slate);
+    margin-bottom:6px;
+  }
+  .field input[type="text"],
+  .field input[type="date"],
+  .field input[type="time"]{
+    width:100%;
+    background:var(--ink);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 12px;
+    color:var(--white);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    outline:none;
+    transition:border-color .2s ease;
+  }
+  .field input:focus{ border-color:var(--blue-bright); }
+  .field-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  .modal-actions{
+    display:flex;
+    gap:10px;
+    margin-top:22px;
+  }
+  .btn{
+    flex:1;
+    padding:11px 14px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:transparent;
+    color:var(--slate);
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    cursor:pointer;
+    transition:all .2s ease;
+  }
+  .btn:hover{ border-color:var(--blue-bright); color:var(--white); }
+  .btn-primary{
+    background:var(--blue);
+    border-color:var(--blue);
+    color:var(--white);
+  }
+  .btn-primary:hover{
+    background:var(--blue-bright);
+    border-color:var(--blue-bright);
+    color:var(--ink);
+  }
+  .btn-reset{
+    flex:none;
+    width:auto;
+    padding:11px 16px;
+  }
+
+  @media (max-width:720px){
+    .split-clock{ grid-template-columns:repeat(2,1fr); }
+    .stats-row{ grid-template-columns:repeat(2,1fr); }
+    .weekday-grid{ grid-template-columns:repeat(3,1fr); }
+    .weekend-grid{ grid-template-columns:repeat(2,1fr); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .badge::before{ animation:none; }
+    * { transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="scanlines"></div>
+
+<div class="wrap">
+
+  <header>
+    <button class="gear-btn" id="openSettings" aria-label="Open settings" title="Settings">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    </button>
+    <div class="badge">Seneca Valley School District &middot; Raiders</div>
+    <h1>Oliva's Countdown<br>to the <span>Last Bell</span></h1>
+    <div class="subtitle">Tracking every day, hour, minute and second until <b id="targetLabel">Thursday, June 4, 2027</b></div>
+    <div class="asof" id="asof">as of —</div>
+  </header>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h3>Settings</h3>
+      <p class="hint">Changes are saved in this browser and reload automatically.</p>
+
+      <div class="field">
+        <label for="inputTitle">Countdown Name</label>
+        <input type="text" id="inputTitle" maxlength="60" placeholder="Oliva's Countdown to the Last Bell">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="inputDate">Last Day of School</label>
+          <input type="date" id="inputDate">
+        </div>
+        <div class="field">
+          <label for="inputTime">Dismissal Time</label>
+          <input type="time" id="inputTime">
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-reset" id="resetSettings">Reset</button>
+        <button class="btn" id="cancelSettings">Cancel</button>
+        <button class="btn btn-primary" id="saveSettings">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <section class="grand">
+    <div class="grand-eyebrow">Days on the Clock</div>
+    <div class="grand-number" id="grandDays">—</div>
+    <div class="grand-label">Days Until the Last Bell</div>
+    <div class="grand-target">Target: June 4, 2027 &middot; 3:00 PM dismissal</div>
+  </section>
+
+  <section class="split-clock">
+    <div class="flip"><div class="flip-num" id="dDays">00</div><div class="flip-label">Days</div></div>
+    <div class="flip"><div class="flip-num" id="dHours">00</div><div class="flip-label">Hours</div></div>
+    <div class="flip"><div class="flip-num" id="dMins">00</div><div class="flip-label">Minutes</div></div>
+    <div class="flip"><div class="flip-num" id="dSecs">00</div><div class="flip-label">Seconds</div></div>
+  </section>
+
+  <div class="stats-row">
+    <div class="chip"><div class="chip-num" id="statWeeks">—</div><div class="chip-label">Weeks Left</div></div>
+    <div class="chip"><div class="chip-num" id="statSchoolDays">—</div><div class="chip-label">School Days (M–F)</div></div>
+    <div class="chip"><div class="chip-num" id="statWeekendDays">—</div><div class="chip-label">Weekend Days</div></div>
+    <div class="chip"><div class="chip-num" id="statHours">—</div><div class="chip-label">Total Hours</div></div>
+  </div>
+
+  <h2 class="section-title">School Days Remaining, By The Numbers</h2>
+  <div class="weekday-grid" id="weekdayGrid"></div>
+  <div class="weekend-grid" id="weekendGrid"></div>
+
+  <footer>
+    Counts every calendar occurrence of each weekday between now and the last day of school — it doesn't yet know<br>
+    about snow days, holidays, or breaks in the actual SV school calendar. Use the <code>&#9881;</code> settings icon above<br>
+    to change the target date, dismissal time, or countdown name.
+  </footer>
+
+</div>
+
+<script>
+  // ---- CONFIGURATION / DEFAULTS ----
+  const DEFAULTS = {
+    title: "Oliva's Countdown to the Last Bell",
+    date: '2027-06-04',
+    time: '15:00'
+  };
+  const STORAGE_KEY = 'sv-countdown-settings';
+
+  function loadSettings() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (saved && saved.date && saved.time) return { ...DEFAULTS, ...saved };
+    } catch (e) { /* ignore corrupt storage */ }
+    return { ...DEFAULTS };
+  }
+  function saveSettingsToStorage(s) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  }
+
+  let settings = loadSettings();
+  let TARGET = new Date(`${settings.date}T${settings.time}:00`);
+
+  function applySettingsToPage() {
+    document.title = settings.title || DEFAULTS.title;
+    const h1 = document.querySelector('h1');
+    h1.innerHTML = (settings.title || DEFAULTS.title).replace(
+      /(\S+)$/, '<span>$1</span>'
+    );
+    const dateObj = new Date(`${settings.date}T${settings.time}:00`);
+    document.getElementById('targetLabel').textContent = dateObj.toLocaleDateString('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+    });
+    document.querySelector('.grand-target').textContent =
+      'Target: ' + dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) +
+      ' \u00b7 ' + dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + ' dismissal';
+  }
+
+  // ---- SETTINGS MODAL ----
+  const overlay = document.getElementById('modalOverlay');
+  const inputTitle = document.getElementById('inputTitle');
+  const inputDate = document.getElementById('inputDate');
+  const inputTime = document.getElementById('inputTime');
+
+  function openModal() {
+    inputTitle.value = settings.title;
+    inputDate.value = settings.date;
+    inputTime.value = settings.time;
+    overlay.classList.add('open');
+  }
+  function closeModal() { overlay.classList.remove('open'); }
+
+  document.getElementById('openSettings').addEventListener('click', openModal);
+  document.getElementById('cancelSettings').addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+
+  document.getElementById('saveSettings').addEventListener('click', () => {
+    if (!inputDate.value || !inputTime.value) return;
+    settings = {
+      title: inputTitle.value.trim() || DEFAULTS.title,
+      date: inputDate.value,
+      time: inputTime.value
+    };
+    saveSettingsToStorage(settings);
+    TARGET = new Date(`${settings.date}T${settings.time}:00`);
+    applySettingsToPage();
+    closeModal();
+    tick();
+  });
+
+  document.getElementById('resetSettings').addEventListener('click', () => {
+    settings = { ...DEFAULTS };
+    saveSettingsToStorage(settings);
+    inputTitle.value = settings.title;
+    inputDate.value = settings.date;
+    inputTime.value = settings.time;
+    TARGET = new Date(`${settings.date}T${settings.time}:00`);
+    applySettingsToPage();
+    tick();
+  });
+
+  applySettingsToPage();
+
+  const WEEKDAYS = [
+    { idx: 1, abbr: 'MON', full: 'Monday' },
+    { idx: 2, abbr: 'TUE', full: 'Tuesday' },
+    { idx: 3, abbr: 'WED', full: 'Wednesday' },
+    { idx: 4, abbr: 'THU', full: 'Thursday' },
+    { idx: 5, abbr: 'FRI', full: 'Friday' },
+  ];
+  const WEEKEND = [
+    { idx: 6, abbr: 'SAT', full: 'Saturday' },
+    { idx: 0, abbr: 'SUN', full: 'Sunday' },
+  ];
+
+  // Build the jersey grids once
+  function buildGrid(containerId, days, offClass) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = days.map(d => `
+      <div class="jersey${offClass ? ' off' : ''}" data-idx="${d.idx}">
+        <div class="jersey-day">${d.abbr}</div>
+        <div class="jersey-num" id="count-${d.idx}">0</div>
+        <div class="jersey-full">${d.full}</div>
+      </div>
+    `).join('');
+  }
+  buildGrid('weekdayGrid', WEEKDAYS, false);
+  buildGrid('weekendGrid', WEEKEND, true);
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function countWeekdays(now, target) {
+    const counts = {0:0,1:0,2:0,3:0,4:0,5:0,6:0};
+    if (now > target) return counts;
+    let cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const end = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+    while (cursor <= end) {
+      counts[cursor.getDay()]++;
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return counts;
+  }
+
+  function tick() {
+    const now = new Date();
+    document.getElementById('asof').textContent =
+      'as of ' + now.toLocaleString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit', second:'2-digit' });
+
+    const diffMs = TARGET - now;
+
+    if (diffMs <= 0) {
+      document.querySelector('.grand').outerHTML = '<div class="done">🔔 The last bell has rung. Enjoy summer, Raiders.</div>';
+      document.querySelector('.split-clock').style.display = 'none';
+      document.querySelector('.stats-row').style.display = 'none';
+      clearInterval(timer);
+      return;
+    }
+
+    const totalSeconds = Math.floor(diffMs / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+
+    document.getElementById('grandDays').textContent = days.toLocaleString('en-US');
+    document.getElementById('dDays').textContent = pad(days);
+    document.getElementById('dHours').textContent = pad(hours);
+    document.getElementById('dMins').textContent = pad(mins);
+    document.getElementById('dSecs').textContent = pad(secs);
+
+    document.getElementById('statWeeks').textContent = Math.floor(days / 7).toLocaleString('en-US');
+    document.getElementById('statHours').textContent = Math.floor(diffMs / 3600000).toLocaleString('en-US');
+
+    const counts = countWeekdays(now, TARGET);
+    let schoolDays = 0, weekendDays = 0;
+    [1,2,3,4,5].forEach(i => schoolDays += counts[i]);
+    [0,6].forEach(i => weekendDays += counts[i]);
+
+    document.getElementById('statSchoolDays').textContent = schoolDays.toLocaleString('en-US');
+    document.getElementById('statWeekendDays').textContent = weekendDays.toLocaleString('en-US');
+
+    Object.keys(counts).forEach(idx => {
+      const el = document.getElementById('count-' + idx);
+      if (el) el.textContent = counts[idx];
+    });
+  }
+
+  tick();
+  const timer = setInterval(tick, 1000);
+</script>
+
+</body>
+</html>
